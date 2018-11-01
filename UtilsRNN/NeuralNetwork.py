@@ -10,76 +10,60 @@ def softmax(matrix):
     exp_matrix = np.exp(matrix)
     return (exp_matrix / np.sum(exp_matrix))
 
-def tanh(z) :
-    return np.tanh(z)
-
-def tanh_derivative(y):
-    return 1 - np.square(y)
-
-#Calculus of the sigmoid
-def sigmoid(z):
-    return 1.0/(1+ np.exp(-z))
-
-#Calculus of the sigmoid derivation
-def sigmoid_derivative(y):
-    return y * (1.0 - y)
-
-
 #Initialisation of the class (input, output, targets, weights, biais)
 class NeuralNetwork:
     def __init__(self, x, y):
+        np.random.seed(10)
         self.input      = x
         self.y          = y
-        self.inputdim   = self.input.shape[1]
-        self.outputdim   = self.y.shape[1]
         self.recurrentdim = 20
         self.nbASCII = 255
         self.inputWeight = np.random.rand(self.recurrentdim, self.nbASCII)
         self.outputWeight   = np.random.rand(self.nbASCII, self.recurrentdim)
         self.recurrentWeight   = np.random.rand(self.recurrentdim,self.recurrentdim)
-
-
+        self.bptt_truncate = 100
 
     def feedForward(self):
-        self.layer_1_values = list()
-        self.output_values = list()
-        self.layer_1_values.append(np.zeros(self.recurrentdim))
-        for indexLetter in range(len(self.input)):
-            inputNormalise = np.zeros(self.nbASCII)
-            inputNormalise[self.input[indexLetter]] = 1
-            layer_1 = np.dot(self.inputWeight, inputNormalise) + np.dot(self.recurrentWeight, self.layer_1_values[-1])
-            layer_1_actif = tanh(layer_1)
-            layer_output = np.dot(self.outputWeight, layer_1)
-            self.layer_1_values.append(layer_1_actif)
-            self.output_values.append(layer_output)
+        iterations = len(self.input)
+        layer_1_activated = np.zeros((iterations + 1, self.recurrentdim))
+        layer_1_activated[-1] = np.zeros(self.recurrentdim)
+        output = np.zeros((iterations, self.nbASCII))
+
+        for iteration in np.arange(iterations):
+            layer_1_activated[iteration] = np.tanh(self.inputWeight[:,int(self.input[iteration])] + self.recurrentWeight.dot(layer_1_activated[iteration-1]))
+            output[iteration] = softmax(self.outputWeight.dot(layer_1_activated[iteration]))
+        return output, layer_1_activated
 
     def prediction(self):
-        self.feedForward()
-        results =  [np.argmax(softmax(layer)) for layer in self.output_values]
+        output, layer_1_activated = self.feedForward()
+        results = np.argmax(output, axis=1)
         return results
 
     def loss_calculation(self):
         assert len(self.input) == len(self.y)
-        self.feedForward()
-        loss = 0.0
-        for i, layer_output in enumerate(self.output_values):
-            probs = softmax(layer_output)
-            loss += -np.log(probs[int(self.y[i])])
-        return loss/len(self.y)
+        loss = 0.
+        for i in np.arange(len(self.y)):
+            output, layer_1_activated = self.feedForward()
+            correct_word_predictions = output[np.arange(len(self.y[i])), int(self.y[i])]
+            loss += -1 * np.sum(np.log(correct_word_predictions))
+        return loss
+
 
     def backpropagation_throught_time(self):
-        T = len(self.y)
-        inputWeightUpdate =  np.zeros_like(self.inputWeight)
-        outputWeightUpdate   =  np.zeros_like(self.outputWeight)
-        recurrentWeightUpdate   =  np.zeros_like(self.recurrentWeight)
-        self.feedForward()
-        delta_o = [softmax(layer) for layer in self.output_values]
+        output, layer_1_activated = self.feedForward()
+        iterations = len(self.y)
 
-        for t in range(T):
-            delta_o[t][int(self.y[t])] -= 1.
+        inputWeight_update = np.zeros(self.inputWeight.shape)
+        outputWeight_update = np.zeros(self.outputWeight.shape)
+        recurrentWeight_update = np.zeros(self.recurrentWeight.shape)
 
-        for t in np.arange(T)[::-1]:
-            print (np.asarray(delta_o[t]))
-            recurrentWeightUpdate += np.outer(np.asarray(delta_o[t]), np.asarray(self.layer_1_values[t].T))
+        delta_o = output
+        print (self.input)
+        print (self.y)
+        delta_o[np.arange(len(self.y)), self.y] -= 1.
+        for iteration in np.arange(iterations)[::-1]:
+            outputWeight_update += np.outer(delta_o[iteration], layer_1_activated[iteration].T)
+            delta_t = self.outputWeight.T.dot(delta_o[iteration]) * (1 - (layer_1_activated[iteration] ** 2))
 
-            #delta_t = self.V.T.dot(delta_o[t]) * (1 - (self.layer_1_values[t] ** 2))
+            for bptt_step in np.arange(max(0, iteration-self.bptt_truncate), iteration+1)[::-1]:
+                recurrentWeight_update += np.outer(delta_t, layer_1_activated[bptt_step-1])

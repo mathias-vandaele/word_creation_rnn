@@ -35,5 +35,4 @@ class GetDataSet:
         nextLetter = copy.deepcopy(letter)
         nextLetter.pop(0)
         nextLetter.append("\n")
-
-        return np.reshape(letter, (-1,1)), np.reshape(nextLetter, (-1,1))
+        return np.reshape(letter[:10], (1,-1)), np.reshape(nextLetter[:10], (1,-1))
