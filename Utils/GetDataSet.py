@@ -34,5 +34,26 @@ class GetDataSet:
 
         nextLetter = copy.deepcopy(letter)
         nextLetter.pop(0)
-        nextLetter.append("\n")
-        return np.reshape(letter[:10], (1,-1)), np.reshape(nextLetter[:10], (1,-1))
+        nextLetter.append(32)
+
+        return np.reshape(letter[:1000], (100,10)), np.reshape(nextLetter[:1000], (100,10))
+
+    def get_dictonnary(self):
+        features = []
+        targets = []
+        for line in self.fileObj:
+            letters = []
+            next_letters = []
+            word = []
+
+            for ch in line:
+                word.append(ord(ch))
+
+            next_letters = copy.deepcopy(word)
+            letters = copy.deepcopy(word)
+            del letters[-1]
+            del next_letters[0]
+            features.append(letters)
+            targets.append(next_letters)
+
+        return features, targets

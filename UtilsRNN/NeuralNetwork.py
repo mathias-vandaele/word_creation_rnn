@@ -13,7 +13,6 @@ def softmax(matrix):
 #Initialisation of the class (input, output, targets, weights, biais)
 class NeuralNetwork:
     def __init__(self, x, y):
-        np.random.seed(10)
         self.input      = x
         self.y          = y
         self.recurrentdim = 20
@@ -73,3 +72,19 @@ class NeuralNetwork:
         self.inputWeight -= inputWeight_update * self.learning_rate
         self.recurrentWeight -= recurrentWeight_update * self.learning_rate
         self.outputWeight -= outputWeight_update * self.learning_rate
+
+    def generate_word(self, first_letter, len):
+        previous_letter = [first_letter]
+        word = []
+        word.append(previous_letter)
+        for i in range(len):
+            next_letter = self.prediction(previous_letter)
+            word.append(next_letter)
+            previous_letter = [next_letter]
+
+        str_word = [str(chr(letter[0])) for letter in word]
+        return str_word
+
+    def bptt_througt_all_dataset(self):
+        for serie in range(len(self.y)):
+            self.backpropagation_throught_time(self.input[serie], self.y[serie])
