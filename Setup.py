@@ -9,9 +9,9 @@ if __name__ == '__main__':
 
     print (nn.loss_calculation())
     for i in range(10):
-        if i % 5 == 0:
+        if i % 2 == 0:
             print (nn.loss_calculation())
         nn.bptt_througt_all_dataset()
     print (nn.loss_calculation())
 
-    print (nn.generate_word(108, 5))
+    print (nn.generate_word(98, 5))

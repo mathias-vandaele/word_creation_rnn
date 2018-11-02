@@ -10,7 +10,7 @@ def softmax(matrix):
     exp_matrix = np.exp(matrix)
     return (exp_matrix / np.sum(exp_matrix))
 
-#Initialisation of the class (input, output, targets, weights, biais)
+#Initialisation of the class (input, output, targets, weights)
 class NeuralNetwork:
     def __init__(self, x, y):
         self.input      = x
